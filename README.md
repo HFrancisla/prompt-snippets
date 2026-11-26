@@ -12,7 +12,7 @@ Inspired by [amosblomqvist's prompt-snippets](https://github.com/amosblomqvist/p
 pi install npm:@hfrancisla/pi-prompt-snippets
 ```
 
-Restart Pi or run `/reload`. Requires Node.js >=22.19 and the Pi 1.3 API.
+Restart Pi or run `/reload`. Requires Node.js >=22.19 and Pi 1.6.1.
 
 ## Usage
 
@@ -54,7 +54,7 @@ npm pack --dry-run   # Ensure snippets/ is included
 
 ## Release
 
-Version: **0.1.0**.
+Version: **0.2.0**.
 
 ```bash
 npm publish --access public

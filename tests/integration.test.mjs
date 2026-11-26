@@ -9,6 +9,14 @@ import { AgentSession, parseSkillBlock } from "../node_modules/@earendil-works/p
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
+function createExtensionSandbox(prefix) {
+  const temp = mkdtempSync(join(root, "tests", prefix));
+  for (const file of ["index.ts", "core.ts", "package.json"]) {
+    copyFileSync(join(root, file), join(temp, file));
+  }
+  mkdirSync(join(temp, "snippets"));
+  return temp;
+}
 
 function enableScriptedMenu(ctx) {
   const theme = {fg:(_color, value) => value, bold:(value) => value};
@@ -72,7 +80,7 @@ async function setup() {
   return {ext,ctx,widgets,notifications,command,send,sessionStart};
 }
 
-test("real Pi 1.3 SDK loader: only opt-in handlers, one command and shortcut, zero model tools", async () => {
+test("real Pi SDK loader: only opt-in handlers, one command and shortcut, zero model tools", async () => {
   const {ext,widgets} = await setup();
   assert.deepEqual([...ext.handlers.keys()], ["session_start","input"]);
   assert.deepEqual([...ext.commands.keys()], ["snippets"]);
@@ -175,7 +183,7 @@ test("command validation and one-shot vs sticky mode", async () => {
   const {command,send,ctx,notifications} = await setup();
   await command("sticky",ctx);
   assert.match(notifications.at(-1).message,/Select snippets first/);
-  await command("preset nonexistent",ctx);
+  await command("unknown-command",ctx);
   assert.match(notifications.at(-1).message,/Usage: \/snippets/);
   ctx.keys = ["\x1b[B","\x1b[B","\x1b[B","\x1b[B"," ","\r"];
   await command("",ctx);
@@ -188,16 +196,6 @@ test("command validation and one-shot vs sticky mode", async () => {
   assert.match(notifications.at(-1).message,/session-kickoff.md/);
 });
 
-test("P no longer invokes presets, and the help no longer advertises them", async () => {
-  const {command,send,ctx,notifications} = await setup();
-  ctx.keys = ["p","\r"];
-  await command("",ctx);
-  assert.equal(await send("No selection"),undefined);
-  await command("preset old-name",ctx);
-  assert.match(notifications.at(-1).message,/Usage: \/snippets/);
-  assert.doesNotMatch(notifications.at(-1).message,/preset/i);
-});
-
 test("menu scrolls in a narrow terminal without crashing", async () => {
   const {command,send,ctx} = await setup();
   ctx.keys = ["\x1b[B","\x1b[B","\x1b[B","\t","\x1b"," ","\r"];
@@ -207,13 +205,9 @@ test("menu scrolls in a narrow terminal without crashing", async () => {
 
 
 
-test("frontmatter skill loads through the real Pi 1.3 Skill expansion method", async () => {
-  const temp = mkdtempSync(join(root, "tests", ".skill-sandbox-"));
+test("frontmatter skill loads through the real Pi Skill expansion method", async () => {
+  const temp = createExtensionSandbox(".skill-sandbox-");
   try {
-    copyFileSync(join(root,"index.ts"),join(temp,"index.ts"));
-    copyFileSync(join(root,"core.ts"),join(temp,"core.ts"));
-    copyFileSync(join(root,"package.json"),join(temp,"package.json"));
-    mkdirSync(join(temp,"snippets"));
     const reviewFile = join(temp,"snippets","review.md");
     const kickoffFile = join(temp,"snippets","kickoff.md");
     writeFileSync(reviewFile, "---\nname: Code review\nskill: code-review\nplacement: prepend\n---\nInspect concurrency and error handling.");
@@ -270,12 +264,8 @@ test("frontmatter skill loads through the real Pi 1.3 Skill expansion method", a
 });
 
 test("TUI greys out a second Skill until first is deselected; ordinary notes remain selectable", async () => {
-  const temp = mkdtempSync(join(root, "tests", ".menu-skill-"));
+  const temp = createExtensionSandbox(".menu-skill-");
   try {
-    copyFileSync(join(root,"index.ts"),join(temp,"index.ts"));
-    copyFileSync(join(root,"core.ts"),join(temp,"core.ts"));
-    copyFileSync(join(root,"package.json"),join(temp,"package.json"));
-    mkdirSync(join(temp,"snippets"));
     writeFileSync(join(temp,"snippets","first.md"),"---\nname: First\ndescription: First task\nskill: first-skill\nplacement: prepend\norder: 10\n---\nFirst rules");
     writeFileSync(join(temp,"snippets","second.md"),"---\nname: Second\ndescription: Second task\nskill: second-skill\nplacement: prepend\norder: 20\n---\nSecond rules");
     writeFileSync(join(temp,"snippets","notes.md"),"---\nname: Notes\nplacement: append\norder: 30\n---\nAdditional notes");
@@ -328,12 +318,8 @@ test("TUI greys out a second Skill until first is deselected; ordinary notes rem
 });
 
 test("unloaded Skills are shown disabled with a reason; detection refreshes and stale selections are removed", async () => {
-  const temp = mkdtempSync(join(root, "tests", ".missing-skill-"));
+  const temp = createExtensionSandbox(".missing-skill-");
   try {
-    copyFileSync(join(root, "index.ts"), join(temp, "index.ts"));
-    copyFileSync(join(root, "core.ts"), join(temp, "core.ts"));
-    copyFileSync(join(root, "package.json"), join(temp, "package.json"));
-    mkdirSync(join(temp, "snippets"));
     writeFileSync(join(temp, "snippets", "available.md"),
       "---\nname: Available\nskill: ready-skill\nplacement: prepend\norder: 10\n---\nAvailable workflow");
     writeFileSync(join(temp, "snippets", "missing.md"),
@@ -415,12 +401,8 @@ test("unloaded Skills are shown disabled with a reason; detection refreshes and 
 });
 
 test("real loader hot-reloads snippet bodies, supports prepend and clears removed selections", async () => {
-  const tmp = mkdtempSync(join(root, "tests", ".sandbox-"));
+  const tmp = createExtensionSandbox(".sandbox-");
   try {
-    copyFileSync(join(root,"index.ts"),join(tmp,"index.ts"));
-    copyFileSync(join(root,"core.ts"),join(tmp,"core.ts"));
-    copyFileSync(join(root,"package.json"),join(tmp,"package.json"));
-    mkdirSync(join(tmp,"snippets"));
     const file = join(tmp,"snippets","alpha.md");
     writeFileSync(file,"---\nname: Alpha\nplacement: prepend\n---\nRevision 1");
     const loaded = await loadExtensions([tmp],tmp);

@@ -12,7 +12,7 @@
 pi install npm:@hfrancisla/pi-prompt-snippets
 ```
 
-重启 Pi 或执行 `/reload`。要求 Node.js >=22.19 和 Pi 1.3 API。
+重启 Pi 或执行 `/reload`。要求 Node.js >=22.19 和 Pi 1.6.1。
 
 ## 使用
 
@@ -54,7 +54,7 @@ npm pack --dry-run   # 确保包含 snippets/ 目录
 
 ## 发布
 
-版本：**0.1.0**。
+版本：**0.2.0**。
 
 ```bash
 npm publish --access public

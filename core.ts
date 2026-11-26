@@ -106,7 +106,7 @@ export function keepOneSkill(active: Snippet[]): { kept: Snippet[]; ignored: Sni
   return { kept, ignored };
 }
 
-/** Pi 1.3 only expands an explicit /skill:name command at the very start of input. */
+/** Pi only expands an explicit /skill:name command at the very start of input. */
 export function explicitSkillName(text: string): string | undefined {
   return text.match(/^\/skill:([a-z0-9]+(?:-[a-z0-9]+)*)(?= |$)/)?.[1];
 }

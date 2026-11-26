@@ -1,6 +1,6 @@
 # pi-prompt-snippets
 
-一个用于 **@earendil-works/pi-coding-agent 1.3.0** 的小型 Pi 扩展：把可组合的 Markdown 行为指令按需放到 **当前用户消息正文** 的前面或后面，而不常驻系统提示词。
+一个用于 **@earendil-works/pi-coding-agent 1.6.1** 的小型 Pi 扩展：把可组合的 Markdown 行为指令按需放到 **当前用户消息正文** 的前面或后面，而不常驻系统提示词。
 
 灵感来源：[amosblomqvist/pi-config/prompt-snippets](https://github.com/amosblomqvist/pi-config/tree/main/extensions/prompt-snippets)。独立实现并增加了持续模式、可选 Skill 引用、显式来源过滤和注入大小限制。
 
@@ -64,27 +64,26 @@ order: 20
 
 字段填写 **Skill 名称**，而不是 `/skill:code-review` 或文件路径。名称必须符合 Pi Skill 命名约定：小写字母、数字和单个连字符，最长 64 字符。代码样例见 [examples/review-with-skill.md](./examples/review-with-skill.md)。
 
-选中含有 `skill` 的 Snippet 后，扩展先将消息变为 `/skill:code-review <前置规则 + 用户任务 + 后置规则>`，再交给 Pi 1.3 的原生 Skill 展开器。因为 Skill 命令被提升到消息开头，即使其他 Snippet 使用 `placement: prepend` 也不会遮挡它。
+选中含有 `skill` 的 Snippet 后，扩展先将消息变为 `/skill:code-review <前置规则 + 用户任务 + 后置规则>`，再交给 Pi 原生的 Skill 展开器。因为 Skill 命令被提升到消息开头，即使其他 Snippet 使用 `placement: prepend` 也不会遮挡它。
 
 使用规则：
 
 - `skill` **仅允许在显式声明 `placement: prepend` 的 Snippet 中使用**。省略 `placement`（默认 `append`）、设置 `placement: append` 或名称不合法时，整个 Snippet 会被忽略。
 - 单个 Snippet 的 `skill` 只能填写**一个字符串名称**；不允许重复 `skill:` 字段、逗号分隔的多个名称或 YAML 列表。
 - 一次选中的组合中最多只能存在一个包含 `skill` 的 Snippet，即使两个 Snippet 指向相同 Skill，也只能选一个。选中一个 Skill Snippet 后，菜单中的其他已加载 Skill Snippets 会显示为灰色 `[-] Name [locked] — Description`，按 `Space` 不会选中，并提示先取消当前 Skill；`Tab` 仍可预览。取消当前 Skill 或按 `R` 清空后，其他已加载 Skill Snippets 重新可选。普通 Snippets 可继续自由多选。
-- 没有声明 `skill` 时，完全保持旧版行为。
+- 没有声明 `skill` 时，按普通 Snippet 处理。
 - 用户主动输入 `/skill:another-skill ...` 时，显式指定优先；Snippet 正文仍然拼接进入任务参数。
 - 运行时通过 `pi.getCommands()` 检查**当前会话实际加载**的 Skill（命令来源为 `skill`），而不是仅扫描文件系统。未安装或未加载的 Skill Snippet 仍显示在 `Alt+S` 菜单中，但标记为灰色 `[-] Name [missing] — Description`，按 `Space` 无法选中，`Tab` 预览会提示先安装并 `/reload`。重新加载后再打开菜单即可检测是否恢复。
 - 如果 Skill 在已经选中的状态下变为不可用，扩展在下一次打开菜单或发送消息时会取消该 Snippet 的选择并通知用户，其他普通 Snippets 保持生效。若宿主没有提供可用的命令目录，扩展不会把“无法检测”误判为“未安装”。
-- 本次收紧了解析与选择规则，更新扩展代码后需执行一次 `/reload` 或重启 Pi；只改 Markdown 内容继续支持即时热加载。
-
 注意：完整 Skill 内容仍由 Pi 原生展开机制读取，并不是 Snippet 扩展自己加载 `SKILL.md`。其他扩展如果在我们之后改写消息并抢占消息开头，理论上仍可能干扰 Skill 展开。
 
-## 开发与兼容环境
+## 开发与验证环境
 
 已验证：
 
-- WSL2 Ubuntu，Node.js **24.15.0**。
-- `@earendil-works/pi-coding-agent` **1.3.0**，`@earendil-works/pi-tui` **1.3.0**。
+- Linux，Node.js **26.13.1**。
+- `@earendil-works/pi-coding-agent` **1.6.1**，`@earendil-works/pi-tui` **1.6.1**。
+- TypeScript **7.0.2**。
 - TypeScript `tsc --noEmit` 通过。
 - SDK 提供的真正 `loadExtensions()`：发现单个扩展，注册 `session_start`、`input`、`/snippets`、`Alt+S`；不注册任何工具。
 - 自动化测试覆盖 parser、排序、热加载、直接多选、上下文注入、取消、终端导航、once/sticky 模式、来源筛选、图片保留、会话重置、删除规则和尺寸上限。
@@ -92,7 +91,6 @@ order: 20
 执行：
 
 ~~~bash
-cd /home/hzf/workspace/projects-dev/pi-extensions-mine/prompt-snippets
 npm ci
 npm run verify
 ~~~
@@ -103,13 +101,11 @@ npm run verify
 
 先进行**隔离加载**，避免和已启用的扩展发生命令或快捷键冲突：
 
-`pi --no-extensions -e /home/hzf/workspace/projects-dev/pi-extensions-mine/prompt-snippets`
+`pi --no-extensions -e .`
 
 在 Pi 中通过 `Alt+S` 勾选多个 Snippets，发送一条消息并检查转化结果；再测试 `/snippets sticky` 与 `/snippets off`。手动交互测试可能涉及当前配置的模型和调用费用。
 
-确认无冲突后，可手动执行 `pi install /home/hzf/workspace/projects-dev/pi-extensions-mine/prompt-snippets`，然后重新打开 Pi 或执行 `/reload`。
-
-**本次开发没有修改** `~/.pi/agent/settings.json`，也没有自动安装或替换任何现有的 Pi 扩展。
+确认无冲突后，可在项目目录执行 `pi install .`，然后重新打开 Pi 或执行 `/reload`。
 
 ## 项目结构
 

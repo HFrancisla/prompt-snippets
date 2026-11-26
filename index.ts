@@ -1,5 +1,5 @@
 /**
- * Opt-in prompt rules for Pi 1.3.
+ * Opt-in prompt rules for Pi 1.6.1.
  * No model-facing tools, system prompt hooks, or automatic snippet injection.
  */
 import { dirname, join } from "node:path";
